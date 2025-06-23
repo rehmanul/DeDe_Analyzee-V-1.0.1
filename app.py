@@ -72,6 +72,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Deployment configuration
+import os
+PORT = int(os.environ.get("PORT", 5000))
+
 # Add responsive CSS
 st.markdown("""
 <style>

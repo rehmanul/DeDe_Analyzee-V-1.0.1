@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["streamlit", "run", "app.py", "--server.port", "5000"]
 
 [workflows]
-runButton = "Project"
+runButton = "Start DWG Analyzer Pro"
 
 [[workflows.workflow]]
 name = "Project"
@@ -58,6 +58,15 @@ author = "agent"
 task = "shell.exec"
 args = "streamlit run direct_dwg_parser.py --server.port 5000 --server.address 0.0.0.0"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start DWG Analyzer Pro"
+author = 44145820
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false --server.fileWatcherType none --server.maxUploadSize 200"
 
 [[ports]]
 localPort = 5000
