@@ -1,0 +1,72 @@
+modules = ["python-3.11", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["boost", "cairo", "ffmpeg-full", "freetype", "geos", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "icu", "libGL", "libGLU", "libxcrypt", "opencascade-occt", "opencollada", "pcre", "pkg-config", "qhull", "swig", "tcl", "tk", "xsimd"]
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["streamlit", "run", "app.py", "--server.port", "5000"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "streamlit_website"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Direct DWG Parser"
+
+[[workflows.workflow]]
+name = "streamlit_website"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "uv add ezdxf shapely matplotlib plotly pandas numpy reportlab rectpack opencv-python scikit-learn scipy"
+
+[[workflows.workflow]]
+name = "Streamlit App"
+author = 42824376
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0"
+
+[[workflows.workflow]]
+name = "Streamlit Server Fixed"
+author = 42824376
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false --server.fileWatcherType none --server.maxUploadSize 200"
+
+[[workflows.workflow]]
+name = "Direct DWG Parser"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run direct_dwg_parser.py --server.port 5000 --server.address 0.0.0.0"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
+localPort = 5002
+externalPort = 3001
