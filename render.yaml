@@ -1,12 +1,15 @@
+
 services:
   - type: web
-    name: dwg-analyzer
+    name: dwg-analyzer-pro
     env: python
+    buildCommand: pip install -r requirements_deploy.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false
     plan: free
-    buildCommand: "cp pyproject_render.toml pyproject.toml && poetry install"
-    startCommand: "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0"
     envVars:
-      - key: DATABASE_URL
-        value: postgresql://yang:nNTm6Q4un1aF25fmVvl7YqSzWffyznIe@dpg-d0t3rlili9vc739k84gg-a.oregon-postgres.render.com/dg4u_tiktok_bot
       - key: PYTHON_VERSION
-        value: "3.12.0"
+        value: 3.11.9
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
