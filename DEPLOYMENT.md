@@ -1,69 +1,32 @@
-# Deployment Guide for AI Architectural Space Analyzer Pro
+# Deployment Guide for DWG Analyzer
 
-## Fixed Issues
+## Render Deployment Fix
 
-✅ **Database Connection Error**: Fixed SQLAlchemy ArgumentError by adding proper DATABASE_URL validation with SQLite fallback  
-✅ **File Upload Issues**: Resolved CSRF token errors with proper Streamlit configuration  
-✅ **Component Initialization**: Added error handling for component initialization  
+The deployment issue was caused by Python 3.13.4 incompatibility with the reportlab package. Here's how to fix it:
 
-## Quick Deployment to Streamlit Cloud
+### 1. Python Version Constraint
+- Updated `pyproject.toml` to require Python `>=3.11,<3.13`
+- Added `runtime.txt` specifying Python 3.12.0
+- Created `pyproject_render.toml` with proper Poetry configuration
 
-1. **Push to GitHub** (Manual steps required):
-```bash
-cd /path/to/your/project
-git add .
-git commit -m "Production deployment fixes"
-git push origin main
-```
+### 2. Deployment Configuration
+- `render.yaml`: Configured for Render deployment with proper build commands
+- `Procfile`: Set up for web service startup
+- Environment variables configured for PostgreSQL database
 
-2. **Deploy on Streamlit Cloud**:
-- Go to [share.streamlit.io](https://share.streamlit.io)
-- Connect your GitHub repository: `rehmanul/The-DWG-Analyzer-Pro-V-1.0`
-- Set main file: `app.py`
-- Add secrets in Advanced settings:
-  ```
-  GEMINI_API_KEY = "your_gemini_api_key_here"
-  ```
+### 3. Build Process
+The deployment will:
+1. Use Python 3.12.0 (compatible with reportlab)
+2. Copy `pyproject_render.toml` to `pyproject.toml`
+3. Install dependencies via Poetry
+4. Start Streamlit server on the assigned port
 
-3. **Optional: Add PostgreSQL** (for production):
-```
-DATABASE_URL = "postgresql://username:password@host:port/database"
-```
+### 4. Database Connection
+PostgreSQL database is pre-configured with credentials from your Render setup.
 
-## Local Development
+### Next Steps
+1. Push these changes to your GitHub repository
+2. Deploy on Render using the updated configuration
+3. The app will be available at your Render URL
 
-1. **Install dependencies**:
-```bash
-pip install -r requirements_deploy.txt
-```
-
-2. **Set environment variables**:
-```bash
-export GEMINI_API_KEY="your_key_here"
-# Optional: export DATABASE_URL="your_postgresql_url"
-```
-
-3. **Run locally**:
-```bash
-streamlit run app.py
-```
-
-## Features Ready for Production
-
-- AI-powered room classification with Gemini
-- Advanced space optimization algorithms
-- BIM integration capabilities
-- Multi-floor building analysis
-- Team collaboration features
-- Professional furniture catalog
-- Comprehensive export options
-- Responsive web interface
-- Database persistence (SQLite/PostgreSQL)
-
-## Configuration Files
-
-- `.streamlit/config.toml`: Server configuration with CSRF disabled for file uploads
-- `requirements_deploy.txt`: Production dependencies with headless OpenCV
-- Database automatically falls back to SQLite if PostgreSQL not available
-
-The application is now production-ready with all critical errors resolved.
+The Python version constraint fix ensures reportlab and all other dependencies install correctly on Render's infrastructure.

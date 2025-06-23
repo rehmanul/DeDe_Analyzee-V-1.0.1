@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "dwg-analyzer"
+version = "1.0.0"
+description = "Professional DWG Architectural Analysis Tool"
+authors = ["DWG Analyzer Team"]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+streamlit = "^1.46.0"
+plotly = "^6.1.2"
+pandas = "^2.3.0"
+numpy = "^2.3.1"
+shapely = "^2.1.1"
+ezdxf = "^1.4.2"
+dxfgrabber = "^1.0.1"
+psycopg2-binary = "^2.9.10"
+sqlalchemy = "^2.0.41"
+python-dotenv = "^1.1.0"
+reportlab = {version = "^4.4.2", python = ">=3.11,<4"}
+fastapi = "^0.115.13"
+uvicorn = "^0.34.3"
+opencv-python = "^4.11.0"
+scikit-learn = "^1.7.0"
+scipy = "^1.16.0"
+matplotlib = "^3.10.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

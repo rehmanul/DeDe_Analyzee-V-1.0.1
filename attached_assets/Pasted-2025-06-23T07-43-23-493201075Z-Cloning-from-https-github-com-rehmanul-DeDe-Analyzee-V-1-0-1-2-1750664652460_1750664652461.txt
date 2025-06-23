@@ -1,0 +1,29 @@
+2025-06-23T07:43:23.493201075Z ==> Cloning from https://github.com/rehmanul/DeDe_Analyzee-V-1.0.1
+2025-06-23T07:43:24.040992886Z ==> Checking out commit 8103ce7004810ca9b99b0627a7fbaa1e4b3ad1c7 in branch main
+2025-06-23T07:43:25.609039802Z ==> Using Python version 3.13.4 (default)
+2025-06-23T07:43:25.63437129Z ==> Docs on specifying a Python version: https://render.com/docs/python-version
+2025-06-23T07:43:28.223433312Z ==> Using Poetry version 2.1.3 (default)
+2025-06-23T07:43:28.269482312Z ==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+2025-06-23T07:43:28.282454228Z ==> Installing UV version 0.7.12...
+2025-06-23T07:43:28.657962169Z ==> Using UV version 0.7.12 (default)
+2025-06-23T07:43:28.65798081Z ==> Docs on specifying a UV version: [https://render.com/docs/uv-version](https://render.com/docs/uv-version)
+2025-06-23T07:43:28.672000899Z ==> Running build command 'poetry install'...
+2025-06-23T07:43:29.5411104Z Updating dependencies
+2025-06-23T07:43:29.541218043Z Resolving dependencies...
+2025-06-23T07:43:37.051869442Z 
+2025-06-23T07:43:37.051912243Z The current project's supported Python range (>=3.12) is not compatible with some of the required packages Python requirement:
+2025-06-23T07:43:37.051925983Z   - reportlab requires Python <4,>=3.7, so it will not be installable for Python >=4
+2025-06-23T07:43:37.051930103Z 
+2025-06-23T07:43:37.051935074Z Because reportlab (4.4.2) requires Python <4,>=3.7
+2025-06-23T07:43:37.051940263Z  and no versions of reportlab match >4.4.2, reportlab is forbidden.
+2025-06-23T07:43:37.051943784Z So, because repl-nix-workspace depends on reportlab (>=4.4.2), version solving failed.
+2025-06-23T07:43:37.051947084Z 
+2025-06-23T07:43:37.051950594Z   * Check your dependencies Python requirement: The Python requirement can be specified via the `python` or `markers` properties
+2025-06-23T07:43:37.051953914Z 
+2025-06-23T07:43:37.051957244Z     For reportlab, a possible solution would be to set the `python` property to ">=3.12,<4"
+2025-06-23T07:43:37.051960534Z 
+2025-06-23T07:43:37.051963944Z     https://python-poetry.org/docs/dependency-specification/#python-restricted-dependencies,
+2025-06-23T07:43:37.051967564Z     https://python-poetry.org/docs/dependency-specification/#using-environment-markers
+2025-06-23T07:43:37.051970854Z 
+2025-06-23T07:43:37.656244328Z ==> Build failed 😞
+2025-06-23T07:43:37.656269088Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
