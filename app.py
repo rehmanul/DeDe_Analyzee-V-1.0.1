@@ -12,6 +12,7 @@ from matplotlib.patches import Polygon as MplPolygon
 import asyncio
 import tempfile
 import os
+import numpy as np  # Added for np.mean in display_furniture_catalog and display_statistics
 
 # Import custom modules
 from src.dwg_parser import DWGParser
@@ -35,45 +36,83 @@ try:
     ADVANCED_FEATURES_AVAILABLE = True
 except ImportError:
     ADVANCED_FEATURES_AVAILABLE = False
+
     # Create fallback classes for production
     class AdvancedRoomClassifier:
-        def batch_classify(self, zones): return {}
+
+        def batch_classify(self, zones):
+            return {}
+
     class SemanticSpaceAnalyzer:
-        def build_space_graph(self, zones, analysis): return {}
-        def analyze_spatial_relationships(self): return {}
+
+        def build_space_graph(self, zones, analysis):
+            return {}
+
+        def analyze_spatial_relationships(self):
+            return {}
+
     class OptimizationEngine:
-        def optimize_layout(self, zones, params): return {'total_efficiency': 0.85}
+
+        def optimize_layout(self, zones, params):
+            return {'total_efficiency': 0.85}
+
     class BIMModelGenerator:
+
         def create_bim_model_from_analysis(self, zones, results, metadata):
+
             class MockBIM:
+
                 def __init__(self):
-                    self.standards_compliance = {'ifc': {'score': 85.0}, 'spaces': {'compliant_spaces': 10}}
+                    self.standards_compliance = {
+                        'ifc': {
+                            'score': 85.0
+                        },
+                        'spaces': {
+                            'compliant_spaces': 10
+                        }
+                    }
+
             return MockBIM()
+
     class FurnitureCatalogManager:
-        def recommend_furniture_for_space(self, space_type, space_area, budget, sustainability_preference):
+
+        def recommend_furniture_for_space(self, space_type, space_area, budget,
+                                          sustainability_preference):
+
             class MockConfig:
+
                 def __init__(self):
                     self.total_cost = 5000.0
                     self.total_items = 15
                     self.sustainability_score = 0.8
+
             return MockConfig()
+
     class CADExporter:
-        def export_to_dxf(self, zones, results, path, **kwargs): pass
-        def export_to_svg(self, zones, results, path): pass
-    class CollaborationManager: pass
-    class MultiFloorAnalyzer: pass
-    class FloorPlan: pass
+
+        def export_to_dxf(self, zones, results, path, **kwargs):
+            pass
+
+        def export_to_svg(self, zones, results, path):
+            pass
+
+    class CollaborationManager:
+        pass
+
+    class MultiFloorAnalyzer:
+        pass
+
+    class FloorPlan:
+        pass
+
 
 # Configure page
-st.set_page_config(
-    page_title="AI Architectural Space Analyzer",
-    page_icon="🏗️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AI Architectural Space Analyzer",
+                   page_icon="🏗️",
+                   layout="wide",
+                   initial_sidebar_state="expanded")
 
 # Deployment configuration
-import os
 PORT = int(os.environ.get("PORT", 5000))
 
 # Add responsive CSS
@@ -114,7 +153,8 @@ st.markdown("""
         margin: 1rem 0;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+            unsafe_allow_html=True)
 
 # Initialize session state
 if 'zones' not in st.session_state:
@@ -135,6 +175,11 @@ if 'multi_floor_project' not in st.session_state:
     st.session_state.multi_floor_project = None
 if 'advanced_mode' not in st.session_state:
     st.session_state.advanced_mode = False
+if 'direct_parse_results' not in st.session_state:  # Added for direct parser
+    st.session_state.direct_parse_results = None
+if 'current_filename' not in st.session_state:  # Added for direct parser
+    st.session_state.current_filename = None
+
 
 # Initialize advanced components
 @st.cache_resource
@@ -152,12 +197,21 @@ def get_advanced_components():
         'ai_analyzer': GeminiAIAnalyzer()
     }
 
+
 def setup_multi_floor_project():
     """Setup multi-floor building project"""
     st.write("**Multi-Floor Building Setup**")
 
-    floor_count = st.number_input("Number of Floors", min_value=1, max_value=50, value=3, key="floor_count_input")
-    building_height = st.number_input("Total Building Height (m)", min_value=3.0, max_value=200.0, value=12.0, key="building_height_input")
+    floor_count = st.number_input("Number of Floors",
+                                  min_value=1,
+                                  max_value=50,
+                                  value=3,
+                                  key="floor_count_input")
+    building_height = st.number_input("Total Building Height (m)",
+                                      min_value=3.0,
+                                      max_value=200.0,
+                                      value=12.0,
+                                      key="building_height_input")
 
     if st.button("Initialize Multi-Floor Project"):
         st.session_state.multi_floor_project = {
@@ -167,16 +221,26 @@ def setup_multi_floor_project():
         }
         st.success(f"Multi-floor project initialized for {floor_count} floors")
 
+
 def setup_collaboration_project():
     """Setup collaborative team project"""
     st.write("**Team Collaboration Setup**")
 
-    project_name = st.text_input("Project Name", value="New Architecture Project", key="project_name_input")
-    team_size = st.number_input("Team Size", min_value=1, max_value=20, value=3, key="team_size_input")
+    project_name = st.text_input("Project Name",
+                                 value="New Architecture Project",
+                                 key="project_name_input")
+    team_size = st.number_input("Team Size",
+                                min_value=1,
+                                max_value=20,
+                                value=3,
+                                key="team_size_input")
 
     if st.button("Start Collaboration"):
         st.session_state.collaboration_active = True
-        st.success(f"Collaboration started for '{project_name}' with {team_size} team members")
+        st.success(
+            f"Collaboration started for '{project_name}' with {team_size} team members"
+        )
+
 
 def setup_analysis_parameters(components):
     """Setup analysis parameters based on mode"""
@@ -185,39 +249,62 @@ def setup_analysis_parameters(components):
 
         # AI Model Selection
         ai_model = st.selectbox("AI Classification Model", [
-            "Advanced Ensemble (Recommended)",
-            "Random Forest",
-            "Gradient Boosting",
-            "Neural Network"
-        ], key="ai_model_select")
+            "Advanced Ensemble (Recommended)", "Random Forest",
+            "Gradient Boosting", "Neural Network"
+        ],
+                                key="ai_model_select")
 
         # Analysis depth
         analysis_depth = st.selectbox("Analysis Depth", [
-            "Comprehensive (All Features)",
-            "Standard (Core Features)",
+            "Comprehensive (All Features)", "Standard (Core Features)",
             "Quick (Basic Analysis)"
-        ], key="analysis_depth_select")
+        ],
+                                      key="analysis_depth_select")
 
         # BIM Integration
-        enable_bim = st.checkbox("Enable BIM Integration", value=True, key="enable_bim_check")
+        enable_bim = st.checkbox("Enable BIM Integration",
+                                 value=True,
+                                 key="enable_bim_check")
         if enable_bim:
-            bim_standard = st.selectbox("BIM Standard", ["IFC 4.3", "COBie 2.4", "Custom"], key="bim_standard_select")
+            bim_standard = st.selectbox("BIM Standard",
+                                        ["IFC 4.3", "COBie 2.4", "Custom"],
+                                        key="bim_standard_select")
 
         # Furniture catalog integration
-        enable_furniture = st.checkbox("Enable Furniture Catalog", value=True, key="enable_furniture_check")
+        enable_furniture = st.checkbox("Enable Furniture Catalog",
+                                       value=True,
+                                       key="enable_furniture_check")
         if enable_furniture:
-            sustainability_pref = st.selectbox("Sustainability Preference", 
-                                             ["A+ (Highest)", "A", "B", "C", "Any"], key="sustainability_select")
+            sustainability_pref = st.selectbox(
+                "Sustainability Preference",
+                ["A+ (Highest)", "A", "B", "C", "Any"],
+                key="sustainability_select")
     else:
         # Standard parameters
         st.subheader("Analysis Parameters")
 
     # Core parameters (always shown)
-    box_length = st.number_input("Box Length (m)", min_value=0.1, max_value=10.0, value=2.0, step=0.1)
-    box_width = st.number_input("Box Width (m)", min_value=0.1, max_value=10.0, value=1.5, step=0.1)
-    margin = st.number_input("Margin (m)", min_value=0.0, max_value=5.0, value=0.5, step=0.1)
+    box_length = st.number_input("Box Length (m)",
+                                 min_value=0.1,
+                                 max_value=10.0,
+                                 value=2.0,
+                                 step=0.1)
+    box_width = st.number_input("Box Width (m)",
+                                min_value=0.1,
+                                max_value=10.0,
+                                value=1.5,
+                                step=0.1)
+    margin = st.number_input("Margin (m)",
+                             min_value=0.0,
+                             max_value=5.0,
+                             value=0.5,
+                             step=0.1)
 
-    confidence_threshold = st.slider("Confidence Threshold", min_value=0.5, max_value=0.95, value=0.7, step=0.05)
+    confidence_threshold = st.slider("Confidence Threshold",
+                                     min_value=0.5,
+                                     max_value=0.95,
+                                     value=0.7,
+                                     step=0.05)
     enable_rotation = st.checkbox("Allow Box Rotation", value=True)
     smart_spacing = st.checkbox("Smart Spacing Optimization", value=True)
 
@@ -229,6 +316,7 @@ def setup_analysis_parameters(components):
         'enable_rotation': enable_rotation,
         'smart_spacing': smart_spacing
     }
+
 
 def setup_analysis_controls(components):
     """Setup analysis control buttons"""
@@ -251,13 +339,15 @@ def setup_analysis_controls(components):
     else:
         params = setup_analysis_parameters(components)
         if st.button("Run AI Analysis", type="primary"):
-            run_ai_analysis(params['box_length'], params['box_width'], params['margin'], 
-                           params['confidence_threshold'], params['enable_rotation'], params['smart_spacing'])
+            run_ai_analysis(params['box_length'], params['box_width'],
+                            params['margin'], params['confidence_threshold'],
+                            params['enable_rotation'], params['smart_spacing'])
 
     if st.session_state.analysis_results:
         st.divider()
         if st.button("Generate Complete Report"):
             generate_comprehensive_report(components)
+
 
 def display_welcome_screen():
     """Display welcome screen with feature overview"""
@@ -307,20 +397,24 @@ def display_welcome_screen():
         8. **Export Package**: Generate complete CAD drawing packages
         """)
 
+
 def display_main_interface(components):
     """Display main interface with analysis results"""
-    st.success(f"DWG file loaded successfully! Found {len(st.session_state.zones)} zones")
+    st.success(
+        f"DWG file loaded successfully! Found {len(st.session_state.zones)} zones"
+    )
 
     if st.session_state.advanced_mode:
         # Advanced interface with more tabs
         tabs = st.tabs([
-            "Analysis Dashboard", 
-            "Interactive Visualization", 
+            "Analysis Dashboard",
+            "Interactive Visualization",
             "Advanced Statistics",
             "BIM Integration",
             "Furniture Catalog",
             "Database & Projects",
             "CAD Export",
+            "Direct DWG Parser",  # Added new tab
             "Settings"
         ])
 
@@ -338,8 +432,31 @@ def display_main_interface(components):
             display_database_interface(components)
         with tabs[6]:
             display_cad_export_interface(components)
-        with tabs[7]:
+        with tabs[7]:  # New tab for direct parser
+            display_direct_dwg_parser_interface()
+        with tabs[8]:
             display_advanced_settings(components)
+    else:
+        # Standard interface
+        tabs = st.tabs([
+            "Analysis Results",
+            "Plan Visualization",
+            "Statistics",
+            "Direct DWG Parser",  # Added new tab
+            "Advanced"
+        ])
+
+        with tabs[0]:
+            display_analysis_results()
+        with tabs[1]:
+            display_plan_visualization()
+        with tabs[2]:
+            display_statistics()
+        with tabs[3]:  # New tab for direct parser
+            display_direct_dwg_parser_interface()
+        with tabs[4]:
+            display_advanced_options()
+
 
 def display_advanced_analysis_dashboard(components):
     """Display advanced analysis dashboard"""
@@ -357,20 +474,25 @@ def display_advanced_analysis_dashboard(components):
     with col2:
         st.metric("Optimal Placements", results.get('total_boxes', 0))
     with col3:
-        efficiency = results.get('optimization', {}).get('total_efficiency', 0.85) * 100
+        efficiency = results.get('optimization', {}).get(
+            'total_efficiency', 0.85) * 100
         st.metric("Optimization Efficiency", f"{efficiency:.1f}%")
     with col4:
         if st.session_state.bim_model:
-            compliance = st.session_state.bim_model.standards_compliance['ifc']['score']
+            compliance = st.session_state.bim_model.standards_compliance[
+                'ifc']['score']
             st.metric("BIM Compliance", f"{compliance:.1f}%")
         else:
             st.metric("BIM Compliance", "Not Generated")
     with col5:
         if st.session_state.furniture_configurations:
-            total_cost = sum(config.total_cost for config in st.session_state.furniture_configurations)
+            total_cost = sum(
+                config.total_cost
+                for config in st.session_state.furniture_configurations)
             st.metric("Furniture Cost", f"${total_cost:,.0f}")
         else:
             st.metric("Furniture Cost", "Not Analyzed")
+
 
 def display_enhanced_visualization(components):
     """Display enhanced visualization with 3D and interactive features"""
@@ -392,10 +514,8 @@ def display_enhanced_visualization(components):
 
     # Generate visualization based on mode
     if view_mode == "3D Isometric" and st.session_state.analysis_results:
-        fig_3d = visualizer.create_3d_plot(
-            st.session_state.zones,
-            st.session_state.analysis_results
-        )
+        fig_3d = visualizer.create_3d_plot(st.session_state.zones,
+                                           st.session_state.analysis_results)
         st.plotly_chart(fig_3d, use_container_width=True)
     else:
         # Standard 2D visualization
@@ -406,12 +526,12 @@ def display_enhanced_visualization(components):
                 show_zones=True,
                 show_boxes=show_furniture,
                 show_labels=show_annotations,
-                color_by_type=True
-            )
+                color_by_type=True)
         else:
             fig = visualizer.create_basic_plot(st.session_state.zones)
 
         st.plotly_chart(fig, use_container_width=True)
+
 
 def display_bim_integration(components):
     """Display BIM integration interface"""
@@ -434,7 +554,9 @@ def display_bim_integration(components):
     with col2:
         st.subheader("Space Standards")
         space_compliance = bim_model.standards_compliance['spaces']
-        st.metric("Compliant Spaces", f"{space_compliance['compliant_spaces']}")
+        st.metric("Compliant Spaces",
+                  f"{space_compliance['compliant_spaces']}")
+
 
 def display_furniture_catalog(components):
     """Display furniture catalog interface"""
@@ -447,9 +569,14 @@ def display_furniture_catalog(components):
     furniture_catalog = components['furniture_catalog']
 
     # Configuration summary
-    total_cost = sum(config.total_cost for config in st.session_state.furniture_configurations)
-    total_items = sum(config.total_items for config in st.session_state.furniture_configurations)
-    avg_sustainability = np.mean([config.sustainability_score for config in st.session_state.furniture_configurations])
+    total_cost = sum(config.total_cost
+                     for config in st.session_state.furniture_configurations)
+    total_items = sum(config.total_items
+                      for config in st.session_state.furniture_configurations)
+    avg_sustainability = np.mean([
+        config.sustainability_score
+        for config in st.session_state.furniture_configurations
+    ])
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -458,6 +585,7 @@ def display_furniture_catalog(components):
         st.metric("Total Cost", f"${total_cost:,.0f}")
     with col3:
         st.metric("Sustainability Score", f"{avg_sustainability:.2f}")
+
 
 def display_cad_export_interface(components):
     """Display CAD export interface"""
@@ -492,34 +620,28 @@ def display_cad_export_interface(components):
                         st.session_state.analysis_results,
                         dxf_path,
                         include_furniture=include_furniture,
-                        include_dimensions=include_dimensions
-                    )
+                        include_dimensions=include_dimensions)
 
                     with open(dxf_path, 'rb') as f:
-                        st.download_button(
-                            "Download DXF File",
-                            data=f.read(),
-                            file_name="architectural_plan.dxf",
-                            mime="application/octet-stream"
-                        )
+                        st.download_button("Download DXF File",
+                                           data=f.read(),
+                                           file_name="architectural_plan.dxf",
+                                           mime="application/octet-stream")
 
                 if export_svg:
                     svg_path = os.path.join(temp_dir, "plan_preview.svg")
                     cad_exporter.export_to_svg(
                         st.session_state.zones,
-                        st.session_state.analysis_results,
-                        svg_path
-                    )
+                        st.session_state.analysis_results, svg_path)
 
                     with open(svg_path, 'r') as f:
-                        st.download_button(
-                            "Download SVG Preview",
-                            data=f.read(),
-                            file_name="plan_preview.svg",
-                            mime="image/svg+xml"
-                        )
+                        st.download_button("Download SVG Preview",
+                                           data=f.read(),
+                                           file_name="plan_preview.svg",
+                                           mime="image/svg+xml")
         except Exception as e:
             st.error(f"Error generating CAD files: {str(e)}")
+
 
 def display_advanced_settings(components):
     """Display advanced settings and configuration"""
@@ -528,13 +650,16 @@ def display_advanced_settings(components):
     st.subheader("AI Model Configuration")
 
     model_accuracy = st.slider("Model Accuracy vs Speed", 0.5, 1.0, 0.85, 0.05)
-    st.write(f"Current setting: {'High Accuracy' if model_accuracy > 0.8 else 'Balanced'}")
+    st.write(
+        f"Current setting: {'High Accuracy' if model_accuracy > 0.8 else 'Balanced'}"
+    )
 
     enable_ensemble = st.checkbox("Enable Ensemble Learning", value=True)
     enable_semantic = st.checkbox("Enable Semantic Analysis", value=True)
 
     if st.button("Update AI Configuration"):
         st.success("AI configuration updated!")
+
 
 def generate_comprehensive_report(components):
     """Generate comprehensive analysis report"""
@@ -547,13 +672,16 @@ def generate_comprehensive_report(components):
             export_manager = ExportManager()
 
             # Generate PDF report
-            pdf_data = export_manager.generate_pdf_report(st.session_state.zones, st.session_state.analysis_results)
+            pdf_data = export_manager.generate_pdf_report(
+                st.session_state.zones, st.session_state.analysis_results)
 
             # Generate JSON export
-            json_data = export_manager.export_to_json(st.session_state.analysis_results)
+            json_data = export_manager.export_to_json(
+                st.session_state.analysis_results)
 
             # Generate CSV data
-            csv_data = export_manager.export_to_csv(st.session_state.analysis_results)
+            csv_data = export_manager.export_to_csv(
+                st.session_state.analysis_results)
 
             col1, col2, col3 = st.columns(3)
 
@@ -561,47 +689,31 @@ def generate_comprehensive_report(components):
                 st.download_button(
                     "Download PDF Report",
                     data=pdf_data,
-                    file_name=f"analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                    mime="application/pdf"
-                )
+                    file_name=
+                    f"analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf")
 
             with col2:
                 st.download_button(
                     "Download JSON Data",
                     data=json_data,
-                    file_name=f"analysis_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                    mime="application/json"
-                )
+                    file_name=
+                    f"analysis_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json")
 
             with col3:
                 st.download_button(
                     "Download CSV Data",
                     data=csv_data,
-                    file_name=f"analysis_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+                    file_name=
+                    f"analysis_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv")
 
             st.success("Comprehensive report package generated!")
 
     except Exception as e:
         st.error(f"Error generating report: {str(e)}")
-    else:
-        # Standard interface
-        tabs = st.tabs([
-            "Analysis Results", 
-            "Plan Visualization", 
-            "Statistics", 
-            "Advanced"
-        ])
 
-        with tabs[0]:
-            display_analysis_results()
-        with tabs[1]:
-            display_plan_visualization()
-        with tabs[2]:
-            display_statistics()
-        with tabs[3]:
-            display_advanced_options()
 
 def display_database_interface(components):
     """Display database and project management interface"""
@@ -618,17 +730,16 @@ def display_database_interface(components):
         ])
 
         if st.button("Create Project") and project_name:
-            project_id = db_manager.create_project(
-                name=project_name,
-                description=project_desc,
-                created_by="current_user",
-                project_type=project_type
-            )
+            project_id = db_manager.create_project(name=project_name,
+                                                   description=project_desc,
+                                                   created_by="current_user",
+                                                   project_type=project_type)
             st.success(f"Project created with ID: {project_id}")
 
     # Project statistics
     if 'current_project_id' in st.session_state:
-        stats = db_manager.get_project_statistics(st.session_state.current_project_id)
+        stats = db_manager.get_project_statistics(
+            st.session_state.current_project_id)
         if stats:
             st.subheader("Current Project Statistics")
 
@@ -656,7 +767,9 @@ def display_database_interface(components):
                 col1, col2, col3 = st.columns([3, 1, 1])
                 with col1:
                     st.write(f"**{project['name']}**")
-                    st.write(f"Type: {project['project_type']} | Created: {project['created_at'][:10]}")
+                    st.write(
+                        f"Type: {project['project_type']} | Created: {project['created_at'][:10]}"
+                    )
                 with col2:
                     if st.button(f"Load", key=f"load_{project['id']}"):
                         st.session_state.current_project_id = project['id']
@@ -667,33 +780,43 @@ def display_database_interface(components):
     else:
         st.info("No projects found. Create your first project above.")
 
+
 def load_multiple_dwg_files(uploaded_files):
     """Load multiple DWG files for multi-floor analysis"""
     try:
         with st.spinner("Loading multiple DWG files..."):
             all_zones = []
             floor_plans = []
+            parser = DWGParser()  # Initialize parser once
 
             for i, file in enumerate(uploaded_files):
                 file_bytes = file.read()
-                parser = DWGParser()
-                zones = parser.parse_file(file_bytes, file.name)
+                # Create temporary file for parsing
+                with tempfile.NamedTemporaryFile(
+                        delete=False,
+                        suffix=Path(file.name).suffix) as tmp_file:
+                    tmp_file.write(file_bytes)
+                    tmp_file_path = tmp_file.name
 
-                # Create floor plan object
-                floor_plan = FloorPlan(
-                    floor_id=f"floor_{i}",
-                    floor_number=i + 1,
-                    elevation=i * 3.0,  # 3m floor height
-                    floor_height=3.0,
-                    zones=zones,
-                    vertical_connections=[],
-                    mechanical_spaces=[],
-                    structural_elements=[],
-                    analysis_results={}
-                )
+                try:
+                    zones = parser.parse_file_from_path(tmp_file_path)
 
-                floor_plans.append(floor_plan)
-                all_zones.extend(zones)
+                    # Create floor plan object
+                    floor_plan = FloorPlan(
+                        floor_id=f"floor_{i}",
+                        floor_number=i + 1,
+                        elevation=i * 3.0,  # 3m floor height
+                        floor_height=3.0,
+                        zones=zones,
+                        vertical_connections=[],
+                        mechanical_spaces=[],
+                        structural_elements=[],
+                        analysis_results={})
+
+                    floor_plans.append(floor_plan)
+                    all_zones.extend(zones)
+                finally:
+                    os.unlink(tmp_file_path)  # Clean up temp file
 
             st.session_state.zones = all_zones
             st.session_state.multi_floor_project = {
@@ -702,11 +825,14 @@ def load_multiple_dwg_files(uploaded_files):
             }
             st.session_state.dwg_loaded = True
 
-            st.success(f"Successfully loaded {len(floor_plans)} floors with {len(all_zones)} total zones")
+            st.success(
+                f"Successfully loaded {len(floor_plans)} floors with {len(all_zones)} total zones"
+            )
             st.rerun()
 
     except Exception as e:
         st.error(f"Error loading multiple DWG files: {str(e)}")
+
 
 def run_advanced_analysis(components):
     """Run comprehensive advanced AI analysis"""
@@ -738,8 +864,10 @@ def run_advanced_analysis(components):
             progress_bar.progress(40)
 
             semantic_analyzer = components['semantic_analyzer']
-            space_graph = semantic_analyzer.build_space_graph(st.session_state.zones, room_analysis)
-            spatial_relationships = semantic_analyzer.analyze_spatial_relationships()
+            space_graph = semantic_analyzer.build_space_graph(
+                st.session_state.zones, room_analysis)
+            spatial_relationships = semantic_analyzer.analyze_spatial_relationships(
+            )
 
             # Step 3: Advanced optimization
             status_text.text("Advanced optimization...")
@@ -755,10 +883,12 @@ def run_advanced_analysis(components):
                 'allow_rotation': True,
                 'smart_spacing': True
             }
-            placement_analysis = analyzer.analyze_furniture_placement(st.session_state.zones, params)
+            placement_analysis = analyzer.analyze_furniture_placement(
+                st.session_state.zones, params)
 
             # Use Gemini AI for optimization
-            optimization_results = ai_analyzer.optimize_furniture_placement(st.session_state.zones, params)
+            optimization_results = ai_analyzer.optimize_furniture_placement(
+                st.session_state.zones, params)
 
             # Step 4: Save to database
             status_text.text("Saving to database...")
@@ -768,24 +898,29 @@ def run_advanced_analysis(components):
 
             # Compile comprehensive results
             results = {
-                'rooms': room_analysis,
-                'placements': placement_analysis,
-                'spatial_relationships': spatial_relationships,
-                'optimization': optimization_results,
-                'parameters': params,
-                'total_boxes': sum(len(spots) for spots in placement_analysis.values()),
-                'analysis_type': 'advanced',
-                'timestamp': datetime.now().isoformat()
+                'rooms':
+                room_analysis,
+                'placements':
+                placement_analysis,
+                'spatial_relationships':
+                spatial_relationships,
+                'optimization':
+                optimization_results,
+                'parameters':
+                params,
+                'total_boxes':
+                sum(len(spots) for spots in placement_analysis.values()),
+                'analysis_type':
+                'advanced',
+                'timestamp':
+                datetime.now().isoformat()
             }
 
             # Save analysis to database
             if 'current_project_id' in st.session_state:
                 analysis_id = db_manager.save_analysis_results(
-                    st.session_state.current_project_id,
-                    'advanced',
-                    params,
-                    results
-                )
+                    st.session_state.current_project_id, 'advanced', params,
+                    results)
                 results['analysis_id'] = analysis_id
 
             st.session_state.analysis_results = results
@@ -794,11 +929,14 @@ def run_advanced_analysis(components):
             progress_bar.empty()
             status_text.empty()
 
-            st.success(f"Advanced analysis complete! Analyzed {len(st.session_state.zones)} zones with {results.get('total_boxes', 0)} optimal placements")
+            st.success(
+                f"Advanced analysis complete! Analyzed {len(st.session_state.zones)} zones with {results.get('total_boxes', 0)} optimal placements"
+            )
             st.rerun()
 
     except Exception as e:
         st.error(f"Error during advanced analysis: {str(e)}")
+
 
 def generate_bim_model(components):
     """Generate BIM model from analysis"""
@@ -818,10 +956,8 @@ def generate_bim_model(components):
             }
 
             bim_model = bim_generator.create_bim_model_from_analysis(
-                st.session_state.zones,
-                st.session_state.analysis_results,
-                building_metadata
-            )
+                st.session_state.zones, st.session_state.analysis_results,
+                building_metadata)
 
             st.session_state.bim_model = bim_model
 
@@ -831,8 +967,7 @@ def generate_bim_model(components):
                 bim_id = db_manager.save_bim_model(
                     st.session_state.current_project_id,
                     {'building_data': 'bim_model_data'},
-                    bim_model.standards_compliance
-                )
+                    bim_model.standards_compliance)
 
             # Show compliance results
             compliance = bim_model.standards_compliance
@@ -841,12 +976,15 @@ def generate_bim_model(components):
 
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("IFC Compliance Score", f"{compliance['ifc']['score']:.1f}%")
+                st.metric("IFC Compliance Score",
+                          f"{compliance['ifc']['score']:.1f}%")
             with col2:
-                st.metric("Compliant Spaces", compliance['spaces']['compliant_spaces'])
+                st.metric("Compliant Spaces",
+                          compliance['spaces']['compliant_spaces'])
 
     except Exception as e:
         st.error(f"Error generating BIM model: {str(e)}")
+
 
 def run_furniture_analysis(components):
     """Run furniture catalog analysis"""
@@ -870,8 +1008,7 @@ def run_furniture_analysis(components):
                     space_type=space_type,
                     space_area=area,
                     budget=None,
-                    sustainability_preference='A'
-                )
+                    sustainability_preference='A')
 
                 configurations.append(config)
 
@@ -879,19 +1016,20 @@ def run_furniture_analysis(components):
                 if 'current_project_id' in st.session_state:
                     db_manager = components['database']
                     db_manager.save_furniture_configuration(
-                        st.session_state.current_project_id,
-                        config.__dict__
-                    )
+                        st.session_state.current_project_id, config.__dict__)
 
             st.session_state.furniture_configurations = configurations
 
             total_cost = sum(config.total_cost for config in configurations)
             total_items = sum(config.total_items for config in configurations)
 
-            st.success(f"Furniture analysis complete! {total_items} items, ${total_cost:,.0f} total cost")
+            st.success(
+                f"Furniture analysis complete! {total_items} items, ${total_cost:,.0f} total cost"
+            )
 
     except Exception as e:
         st.error(f"Error in furniture analysis: {str(e)}")
+
 
 def generate_cad_export(components):
     """Generate CAD export package"""
@@ -906,10 +1044,8 @@ def generate_cad_export(components):
             # Create temporary directory for exports
             with tempfile.TemporaryDirectory() as temp_dir:
                 package_files = cad_exporter.create_technical_drawing_package(
-                    st.session_state.zones,
-                    st.session_state.analysis_results,
-                    temp_dir
-                )
+                    st.session_state.zones, st.session_state.analysis_results,
+                    temp_dir)
 
                 st.success("CAD export package generated!")
 
@@ -920,12 +1056,9 @@ def generate_cad_export(components):
                         if os.path.exists(file_path):
                             file_size = os.path.getsize(file_path)
                             db_manager.log_export(
-                                st.session_state.current_project_id,
-                                file_type,
-                                os.path.basename(file_path),
-                                file_size,
-                                "current_user"
-                            )
+                                st.session_state.current_project_id, file_type,
+                                os.path.basename(file_path), file_size,
+                                "current_user")
 
                 # Show downloadable files
                 for file_type, file_path in package_files.items():
@@ -935,14 +1068,15 @@ def generate_cad_export(components):
 
                         file_name = os.path.basename(file_path)
                         st.download_button(
-                            label=f"Download {file_type.replace('_', ' ').title()}",
+                            label=
+                            f"Download {file_type.replace('_', ' ').title()}",
                             data=file_data,
                             file_name=file_name,
-                            mime='application/octet-stream'
-                        )
+                            mime='application/octet-stream')
 
     except Exception as e:
         st.error(f"Error generating CAD export: {str(e)}")
+
 
 def main():
     """Main application function with full advanced features"""
@@ -954,10 +1088,15 @@ def main():
     col1, col2 = st.columns([4, 1])
     with col1:
         st.title("🏗️ AI Architectural Space Analyzer PRO")
-        st.markdown("**Complete Professional Solution for Architectural Analysis & Space Planning**")
+        st.markdown(
+            "**Complete Professional Solution for Architectural Analysis & Space Planning**"
+        )
 
     with col2:
-        st.session_state.advanced_mode = st.toggle("Advanced Mode", value=st.session_state.advanced_mode, key="main_advanced_mode_toggle")
+        st.session_state.advanced_mode = st.toggle(
+            "Advanced Mode",
+            value=st.session_state.advanced_mode,
+            key="main_advanced_mode_toggle")
 
     # Sidebar for controls
     with st.sidebar:
@@ -972,10 +1111,8 @@ def main():
 
         if st.session_state.advanced_mode:
             project_type = st.selectbox("Project Type", [
-                "Single Floor Analysis", 
-                "Multi-Floor Building", 
-                "BIM Integration Project",
-                "Collaborative Team Project"
+                "Single Floor Analysis", "Multi-Floor Building",
+                "BIM Integration Project", "Collaborative Team Project"
             ])
 
             if project_type == "Multi-Floor Building":
@@ -988,7 +1125,8 @@ def main():
             "Choose DWG/DXF files",
             type=['dwg', 'dxf'],
             accept_multiple_files=st.session_state.advanced_mode,
-            help="Upload architectural plan files for analysis (Max 200MB per file)"
+            help=
+            "Upload architectural plan files for analysis (Max 200MB per file)"
         )
 
         if uploaded_file is not None:
@@ -996,14 +1134,15 @@ def main():
                 if isinstance(uploaded_file, list):
                     # Multiple files
                     st.write(f"Selected {len(uploaded_file)} files")
-                    total_size = sum(f.size for f in uploaded_file) / (1024*1024)
+                    total_size = sum(f.size
+                                     for f in uploaded_file) / (1024 * 1024)
                     st.write(f"Total size: {total_size:.1f} MB")
 
                     if st.button("Load Multiple Files", type="primary"):
                         load_multiple_dwg_files(uploaded_file)
                 else:
                     # Single file
-                    file_size_mb = uploaded_file.size / (1024*1024)
+                    file_size_mb = uploaded_file.size / (1024 * 1024)
                     st.write(f"File: {uploaded_file.name}")
                     st.write(f"Size: {file_size_mb:.1f} MB")
 
@@ -1043,8 +1182,11 @@ def main():
                     generate_cad_export(components)
         else:
             if st.button("Run AI Analysis", type="primary"):
-                run_ai_analysis(params['box_length'], params['box_width'], params['margin'], 
-                               params['confidence_threshold'], params['enable_rotation'], params['smart_spacing'])
+                run_ai_analysis(params['box_length'], params['box_width'],
+                                params['margin'],
+                                params['confidence_threshold'],
+                                params['enable_rotation'],
+                                params['smart_spacing'])
 
         if st.session_state.analysis_results:
             st.divider()
@@ -1053,13 +1195,14 @@ def main():
 
     # Main content area
     try:
-        if not st.session_state.dwg_loaded:
+        if not st.session_state.dwg_loaded and st.session_state.direct_parse_results is None:  # Check for direct parse results too
             display_welcome_screen()
         else:
             display_main_interface(components)
     except Exception as e:
         st.error(f"Application error: {str(e)}")
         st.info("Please refresh the page and try again")
+
 
 def display_advanced_statistics(components):
     """Display advanced statistics"""
@@ -1081,29 +1224,60 @@ def display_advanced_statistics(components):
         with col1:
             st.subheader("Room Type Distribution")
             if room_types:
-                room_df = pd.DataFrame(list(room_types.items()), columns=['Room Type', 'Count'])
-                fig = px.pie(room_df, values='Count', names='Room Type', title="Room Distribution")
+                room_df = pd.DataFrame(list(room_types.items()),
+                                       columns=['Room Type', 'Count'])
+                fig = px.pie(room_df,
+                             values='Count',
+                             names='Room Type',
+                             title="Room Distribution")
                 st.plotly_chart(fig, use_container_width=True)
 
         with col2:
             st.subheader("Space Utilization")
             if 'total_boxes' in results:
-                box_area = results.get('total_boxes', 0) * 3.0  # Estimate
-                total_area = sum(info.get('area', 0.0) for info in results.get('rooms', {}).values())
-                utilization = (box_area / total_area * 100) if total_area > 0 else 0
+                box_area = results.get('total_boxes', 0) * results.get(
+                    'parameters', {}).get(
+                        'box_size', [2.0, 1.5])[0] * results.get(
+                            'parameters', {}).get('box_size', [2.0, 1.5])[1]
+                total_area = sum(
+                    info.get('area', 0.0)
+                    for info in results.get('rooms', {}).values())
+                utilization = (box_area / total_area *
+                               100) if total_area > 0 else 0
 
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=utilization,
-                    domain={'x': [0, 1], 'y': [0, 1]},
-                    title={'text': "Space Utilization %"},
-                    gauge={'axis': {'range': [None, 100]},
-                           'bar': {'color': "darkblue"},
-                           'steps': [{'range': [0, 50], 'color': "lightgray"},
-                                    {'range': [50, 80], 'color': "gray"}],
-                           'threshold': {'line': {'color': "red", 'width': 4},
-                                        'thickness': 0.75, 'value': 90}}))
+                fig = go.Figure(
+                    go.Indicator(mode="gauge+number",
+                                 value=utilization,
+                                 domain={
+                                     'x': [0, 1],
+                                     'y': [0, 1]
+                                 },
+                                 title={'text': "Space Utilization %"},
+                                 gauge={
+                                     'axis': {
+                                         'range': [None, 100]
+                                     },
+                                     'bar': {
+                                         'color': "darkblue"
+                                     },
+                                     'steps': [{
+                                         'range': [0, 50],
+                                         'color': "lightgray"
+                                     }, {
+                                         'range': [50, 80],
+                                         'color': "gray"
+                                     }],
+                                     'threshold': {
+                                         'line': {
+                                             'color': "red",
+                                             'width': 4
+                                         },
+                                         'thickness': 0.75,
+                                         'value': 90
+                                     }
+                                 }))
                 st.plotly_chart(fig, use_container_width=True)
+
 
 def load_dwg_file(uploaded_file):
     """Load and parse DWG/DXF file"""
@@ -1117,13 +1291,16 @@ def load_dwg_file(uploaded_file):
             # Check file extension
             file_ext = uploaded_file.name.lower().split('.')[-1]
             if file_ext not in ['dwg', 'dxf']:
-                st.error(f"Unsupported file format: {file_ext}. Please upload a DWG or DXF file.")
+                st.error(
+                    f"Unsupported file format: {file_ext}. Please upload a DWG or DXF file."
+                )
                 return
 
             # Check file size (limit to 50MB for better performance)
             file_size = uploaded_file.size
             if file_size > 50 * 1024 * 1024:
-                st.error("File too large. Please use a file smaller than 50MB.")
+                st.error(
+                    "File too large. Please use a file smaller than 50MB.")
                 return
 
             if file_size == 0:
@@ -1141,7 +1318,8 @@ def load_dwg_file(uploaded_file):
                 return
 
             # Create temporary file for processing
-            with tempfile.NamedTemporaryFile(suffix=f'.{file_ext}', delete=False) as tmp_file:
+            with tempfile.NamedTemporaryFile(suffix=f'.{file_ext}',
+                                             delete=False) as tmp_file:
                 tmp_file.write(file_bytes)
                 tmp_file_path = tmp_file.name
 
@@ -1151,14 +1329,18 @@ def load_dwg_file(uploaded_file):
                 zones = parser.parse_file_from_path(tmp_file_path)
 
                 if not zones:
-                    st.warning("No valid zones found in the file. Please check if the file contains closed polygons or room boundaries.")
+                    st.warning(
+                        "No valid zones found in the file. Please check if the file contains closed polygons or room boundaries."
+                    )
                     return
 
                 st.session_state.zones = zones
                 st.session_state.dwg_loaded = True
                 st.session_state.current_filename = uploaded_file.name
 
-                st.success(f"Successfully loaded {len(zones)} zones from {uploaded_file.name}")
+                st.success(
+                    f"Successfully loaded {len(zones)} zones from {uploaded_file.name}"
+                )
                 st.rerun()
 
             finally:
@@ -1171,10 +1353,14 @@ def load_dwg_file(uploaded_file):
     except Exception as e:
         error_msg = str(e)
         st.error(f"Error loading DWG file: {error_msg}")
-        st.info("Try these solutions: Use a smaller file (under 50MB), ensure the file is a valid DWG/DXF format, or try refreshing the page.")
+        st.info(
+            "Try these solutions: Use a smaller file (under 50MB), ensure the file is a valid DWG/DXF format, or try refreshing the page."
+        )
+
 
 # Keep existing functions for backward compatibility
-def run_ai_analysis(box_length, box_width, margin, confidence_threshold, enable_rotation, smart_spacing):
+def run_ai_analysis(box_length, box_width, margin, confidence_threshold,
+                    enable_rotation, smart_spacing):
     """Run AI analysis on loaded zones"""
     try:
         with st.spinner("🤖 Running AI analysis..."):
@@ -1201,35 +1387,45 @@ def run_ai_analysis(box_length, box_width, margin, confidence_threshold, enable_
                 'smart_spacing': smart_spacing
             }
 
-            placement_analysis = analyzer.analyze_furniture_placement(st.session_state.zones, params)
+            placement_analysis = analyzer.analyze_furniture_placement(
+                st.session_state.zones, params)
 
             # Step 3: Optimization
             status_text.text("Optimizing placements...")
             progress_bar.progress(75)
 
             optimizer = PlacementOptimizer()
-            optimization_results = optimizer.optimize_placements(placement_analysis, params)
+            optimization_results = optimizer.optimize_placements(
+                placement_analysis, params)
 
             # Step 4: Compile results
             status_text.text("Compiling results...")
             progress_bar.progress(100)
 
             st.session_state.analysis_results = {
-                'rooms': room_analysis,
-                'placements': placement_analysis,
-                'optimization': optimization_results,
-                'parameters': params,
-                'total_boxes': sum(len(spots) for spots in placement_analysis.values())
+                'rooms':
+                room_analysis,
+                'placements':
+                placement_analysis,
+                'optimization':
+                optimization_results,
+                'parameters':
+                params,
+                'total_boxes':
+                sum(len(spots) for spots in placement_analysis.values())
             }
 
             progress_bar.empty()
             status_text.empty()
 
-            st.success(f"✅ AI analysis complete! Found {st.session_state.analysis_results.get('total_boxes', 0)} optimal box placements")
+            st.success(
+                f"✅ AI analysis complete! Found {st.session_state.analysis_results.get('total_boxes', 0)} optimal box placements"
+            )
             st.rerun()
 
     except Exception as e:
         st.error(f"❌ Error during AI analysis: {str(e)}")
+
 
 def display_analysis_results():
     """Display AI analysis results"""
@@ -1246,11 +1442,14 @@ def display_analysis_results():
         st.metric("Total Boxes", results.get('total_boxes', 0))
 
     with col2:
-        total_area = results.get('total_boxes', 0) * results.get('parameters', {}).get('box_size', [2.0, 1.5])[0] * results.get('parameters', {}).get('box_size', [2.0, 1.5])[1]
+        total_area = results.get('total_boxes', 0) * results.get(
+            'parameters', {}).get('box_size', [2.0, 1.5])[0] * results.get(
+                'parameters', {}).get('box_size', [2.0, 1.5])[1]
         st.metric("Total Area", f"{total_area:.1f} m²")
 
     with col3:
-        efficiency = results.get('optimization', {}).get('total_efficiency', 0.85) * 100
+        efficiency = results.get('optimization', {}).get(
+            'total_efficiency', 0.85) * 100
         st.metric("Efficiency", f"{efficiency:.1f}%")
 
     with col4:
@@ -1270,13 +1469,15 @@ def display_analysis_results():
             'Room Type': room_info.get('type', 'Unknown'),
             'Confidence': f"{room_info.get('confidence', 0.0):.1%}",
             'Area (m²)': f"{room_info.get('area', 0.0):.1f}",
-            'Dimensions': f"{room_info.get('dimensions', [0, 0])[0]:.1f} × {room_info.get('dimensions', [0, 0])[1]:.1f}",
+            'Dimensions':
+            f"{room_info.get('dimensions', [0, 0])[0]:.1f} × {room_info.get('dimensions', [0, 0])[1]:.1f}",
             'Boxes Placed': len(placements),
             'Layer': room_info.get('layer', 'Unknown')
         })
 
     df = pd.DataFrame(room_data)
     st.dataframe(df, use_container_width=True)
+
 
 def display_plan_visualization():
     """Display plan visualization"""
@@ -1305,12 +1506,12 @@ def display_plan_visualization():
                 show_zones=show_zones,
                 show_boxes=show_boxes,
                 show_labels=show_labels,
-                color_by_type=color_by_type
-            )
+                color_by_type=color_by_type)
         else:
             fig = visualizer.create_basic_plot(st.session_state.zones)
 
         st.plotly_chart(fig, use_container_width=True)
+
 
 def display_statistics():
     """Display detailed statistics"""
@@ -1327,19 +1528,23 @@ def display_statistics():
 
     with col1:
         # Room type distribution
-        room_types = [info.get('type', 'Unknown') for info in results.get('rooms', {}).values()]
+        room_types = [
+            info.get('type', 'Unknown')
+            for info in results.get('rooms', {}).values()
+        ]
         room_type_counts = pd.Series(room_types).value_counts()
 
-        fig_pie = px.pie(
-            values=room_type_counts.values,
-            names=room_type_counts.index,
-            title="Room Type Distribution"
-        )
+        fig_pie = px.pie(values=room_type_counts.values,
+                         names=room_type_counts.index,
+                         title="Room Type Distribution")
         st.plotly_chart(fig_pie, use_container_width=True)
 
     with col2:
         # Box placement by room
-        placement_counts = {zone: len(placements) for zone, placements in results.get('placements', {}).items()}
+        placement_counts = {
+            zone: len(placements)
+            for zone, placements in results.get('placements', {}).items()
+        }
 
         if placement_counts:
             # Create DataFrame for Plotly
@@ -1348,12 +1553,7 @@ def display_statistics():
                 'Count': list(placement_counts.values())
             })
 
-            fig_bar = px.bar(
-                df,
-                x='Zone',
-                y='Count',
-                title="Boxes per Zone"
-            )
+            fig_bar = px.bar(df, x='Zone', y='Count', title="Boxes per Zone")
         else:
             fig_bar = px.Figure()
             fig_bar.update_layout(title="No placement data available")
@@ -1364,11 +1564,13 @@ def display_statistics():
     st.subheader("⚡ Efficiency Metrics")
 
     # Calculate various efficiency metrics
-    total_room_area = sum(info.get('area', 0.0) for info in results.get('rooms', {}).values())
+    total_room_area = sum(
+        info.get('area', 0.0) for info in results.get('rooms', {}).values())
     total_boxes = results.get('total_boxes', 0)
     box_size = results.get('parameters', {}).get('box_size', [2.0, 1.5])
     total_box_area = total_boxes * box_size[0] * box_size[1]
-    space_utilization = (total_box_area / total_room_area) * 100 if total_room_area > 0 else 0
+    space_utilization = (total_box_area /
+                         total_room_area) * 100 if total_room_area > 0 else 0
 
     avg_suitability = 0
     if results.get('placements'):
@@ -1386,7 +1588,11 @@ def display_statistics():
         st.metric("Avg. Suitability Score", f"{avg_suitability:.2f}")
 
     with metrics_col3:
-        st.metric("Boxes per m²", f"{results.get('total_boxes', 0)/total_room_area:.2f}" if total_room_area > 0 else "0.00")
+        st.metric(
+            "Boxes per m²",
+            f"{results.get('total_boxes', 0)/total_room_area:.2f}"
+            if total_room_area > 0 else "0.00")
+
 
 def display_advanced_options():
     """Display advanced options and settings"""
@@ -1402,17 +1608,19 @@ def display_advanced_options():
             layers.add(zone.get('layer', 'Unknown'))
 
         # Layer selection
-        selected_layers = st.multiselect(
-            "Select layers to analyze",
-            options=list(layers),
-            default=list(layers)
-        )
+        selected_layers = st.multiselect("Select layers to analyze",
+                                         options=list(layers),
+                                         default=list(layers))
 
         if st.button("Update Layer Selection"):
             # Filter zones by selected layers
-            filtered_zones = [zone for zone in st.session_state.zones if zone.get('layer', 'Unknown') in selected_layers]
+            filtered_zones = [
+                zone for zone in st.session_state.zones
+                if zone.get('layer', 'Unknown') in selected_layers
+            ]
             st.session_state.zones = filtered_zones
-            st.success(f"Updated to {len(filtered_zones)} zones from selected layers")
+            st.success(
+                f"Updated to {len(filtered_zones)} zones from selected layers")
             st.rerun()
 
     st.divider()
@@ -1441,10 +1649,13 @@ def display_advanced_options():
     with st.expander("🔍 Debug Information"):
         if st.session_state.zones:
             st.write("**Loaded Zones:**", len(st.session_state.zones))
-            st.write("**Analysis Results:**", bool(st.session_state.analysis_results))
+            st.write("**Analysis Results:**",
+                     bool(st.session_state.analysis_results))
 
             if st.checkbox("Show raw zone data"):
-                st.json(st.session_state.zones[:2])  # Show first 2 zones as example
+                st.json(st.session_state.zones[:2]
+                        )  # Show first 2 zones as example
+
 
 def export_statistics_csv():
     """Export statistics as CSV"""
@@ -1469,15 +1680,14 @@ def export_statistics_csv():
         df = pd.DataFrame(room_data)
         csv = df.to_csv(index=False)
 
-        st.download_button(
-            label="📥 Download CSV",
-            data=csv,
-            file_name="architectural_analysis.csv",
-            mime="text/csv"
-        )
+        st.download_button(label="📥 Download CSV",
+                           data=csv,
+                           file_name="architectural_analysis.csv",
+                           mime="text/csv")
 
     except Exception as e:
         st.error(f"Error exporting CSV: {str(e)}")
+
 
 def export_analysis_json():
     """Export full analysis as JSON"""
@@ -1494,38 +1704,36 @@ def export_analysis_json():
 
         # Deep convert the results
         import json
-        results_copy = json.loads(json.dumps(st.session_state.analysis_results, default=convert_numpy))
+        results_copy = json.loads(
+            json.dumps(st.session_state.analysis_results,
+                       default=convert_numpy))
 
         json_data = json.dumps(results_copy, indent=2)
 
-        st.download_button(
-            label="📥 Download JSON",
-            data=json_data,
-            file_name="architectural_analysis.json",
-            mime="application/json"
-        )
+        st.download_button(label="📥 Download JSON",
+                           data=json_data,
+                           file_name="architectural_analysis.json",
+                           mime="application/json")
 
     except Exception as e:
         st.error(f"Error exporting JSON: {str(e)}")
+
 
 def generate_pdf_report():
     """Generate comprehensive PDF report"""
     try:
         export_manager = ExportManager()
         pdf_bytes = export_manager.generate_pdf_report(
-            st.session_state.zones,
-            st.session_state.analysis_results
-        )
+            st.session_state.zones, st.session_state.analysis_results)
 
-        st.download_button(
-            label="📥 Download PDF Report",
-            data=pdf_bytes,
-            file_name="architectural_analysis_report.pdf",
-            mime="application/pdf"
-        )
+        st.download_button(label="📥 Download PDF Report",
+                           data=pdf_bytes,
+                           file_name="architectural_analysis_report.pdf",
+                           mime="application/pdf")
 
     except Exception as e:
         st.error(f"Error generating PDF: {str(e)}")
+
 
 def generate_report():
     """Generate quick report summary"""
@@ -1552,6 +1760,286 @@ def generate_report():
 
         **Algorithm**: {results.get('optimization', {}).get('algorithm_used', 'Standard Optimization')}
         """)
+
+
+# --- Start of Merged direct_dwg_parser.py functions ---
+
+from shapely.geometry import Polygon
+
+
+def parse_dwg_file_direct(file_path):
+    """Parse DWG file and extract room data using DWGParser"""
+    try:
+        parser = DWGParser()
+        zones = parser.parse_file_from_path(file_path)
+
+        results = {
+            'layers':
+            list(set([zone.get('layer', 'Unknown') for zone in zones])),
+            'entities': {
+                'ROOMS': len(zones)
+            },
+            'rooms': []
+        }
+
+        for zone in zones:
+            if 'points' in zone and len(zone['points']) >= 3:
+                try:
+                    # Ensure points are tuples for shapely Polygon
+                    shapely_points = [tuple(p) for p in zone['points']]
+                    polygon = Polygon(shapely_points)
+                    area = zone.get('area', polygon.area)
+                    perimeter = polygon.length
+
+                    results['rooms'].append({
+                        'points':
+                        zone['points'],
+                        'area':
+                        area,
+                        'layer':
+                        zone.get('layer', 'Unknown'),
+                        'perimeter':
+                        perimeter,
+                        'type':
+                        zone.get('type', 'Unknown'),
+                        'source':
+                        zone.get('source', 'parsed')
+                    })
+                except Exception as poly_e:
+                    # Fallback if shapely fails (e.g., non-simple polygon)
+                    st.warning(
+                        f"Shapely failed for a zone: {poly_e}. Calculating basic area."
+                    )
+                    area = zone.get('area', 0)
+                    results['rooms'].append({
+                        'points':
+                        zone['points'],
+                        'area':
+                        area,
+                        'layer':
+                        zone.get('layer', 'Unknown'),
+                        'perimeter':
+                        0,
+                        'type':
+                        zone.get('type', 'Unknown'),
+                        'source':
+                        zone.get('source', 'parsed')
+                    })
+            else:
+                st.warning(
+                    f"Zone skipped due to insufficient points: {zone.get('id', 'N/A')}"
+                )
+
+        return results
+
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def create_room_visualization(rooms):
+    """Create plotly visualization of rooms"""
+    fig = go.Figure()
+    colors = px.colors.qualitative.Plotly  # Use Plotly's qualitative colors for variety
+
+    for i, room in enumerate(rooms):
+        points = room['points']
+        # Close the polygon for plotting if not already closed
+        x = [p[0] for p in points]
+        y = [p[1] for p in points]
+        if x[0] != x[-1] or y[0] != y[-1]:
+            x.append(x[0])
+            y.append(y[0])
+
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                fill='toself',
+                fillcolor=colors[i % len(colors)],
+                line=dict(color='black', width=1),
+                name=f"Room {i+1} ({room['area']:.1f} m²)",
+                opacity=0.7,
+                hoverinfo='text',
+                text=
+                f"Room {i+1}<br>Area: {room['area']:.2f} m²<br>Layer: {room['layer']}<br>Type: {room.get('type', 'Unknown')}"
+            ))
+
+    fig.update_layout(
+        title="Room Layout from DWG",
+        xaxis_title="X Coordinate",
+        yaxis_title="Y Coordinate",
+        showlegend=True,
+        yaxis=dict(scaleanchor="x", scaleratio=1),  # Maintain aspect ratio
+        hovermode="closest")
+    return fig
+
+
+def display_direct_dwg_parser_interface():
+    """Display the direct DWG parser interface"""
+    st.header("Direct DWG File Parser")
+    st.write(
+        "This section allows for direct parsing and visualization of DWG/DXF files, independent of the main AI analysis workflow."
+    )
+
+    uploaded_file_direct = st.file_uploader(
+        "Upload a DWG/DXF file for direct parsing",
+        type=['dwg', 'dxf'],
+        key="direct_parser_uploader")
+
+    if uploaded_file_direct is not None:
+        file_ext = uploaded_file_direct.name.lower().split('.')[-1]
+        file_size_mb = uploaded_file_direct.size / (1024 * 1024)
+        st.write(f"File: {uploaded_file_direct.name}")
+        st.write(f"Size: {file_size_mb:.1f} MB")
+
+        if st.button("Parse File Directly", key="parse_direct_button"):
+            if file_size_mb > 50:  # Keep a stricter limit for direct parsing if desired
+                st.error(
+                    "File too large for direct parsing. Maximum size is 50MB.")
+            else:
+                with tempfile.NamedTemporaryFile(suffix=f'.{file_ext}',
+                                                 delete=False) as tmp_file:
+                    tmp_file.write(uploaded_file_direct.getvalue())
+                    tmp_file_path = tmp_file.name
+
+                try:
+                    with st.spinner("Parsing DWG file..."):
+                        results = parse_dwg_file_direct(tmp_file_path)
+                    st.session_state.direct_parse_results = results
+                    st.session_state.current_filename = uploaded_file_direct.name  # Update filename for display
+                finally:
+                    os.unlink(tmp_file_path)  # Clean up temp file
+
+    # Display results if available
+    if st.session_state.direct_parse_results:
+        results = st.session_state.direct_parse_results
+        if 'error' in results:
+            st.error(f"Error parsing file: {results['error']}")
+            st.session_state.direct_parse_results = None  # Clear results on error
+        else:
+            st.success("File parsed successfully!")
+
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.subheader("File Information")
+                st.write(f"**File:** {st.session_state.current_filename}")
+                st.write(f"**Layers:** {len(results['layers'])}")
+
+                st.subheader("Entities Found")
+                for entity_type, count in results['entities'].items():
+                    st.write(f"- {entity_type}: {count}")
+
+                st.subheader("Rooms Detected")
+                st.write(f"Total rooms: {len(results['rooms'])}")
+
+                if results['rooms']:
+                    for i, room in enumerate(results['rooms']):
+                        st.write(f"Room {i+1}:")
+                        st.write(f"  - Area: {room['area']:.2f} m²")
+                        st.write(f"  - Layer: {room['layer']}")
+                        st.write(f"  - Type: {room.get('type', 'Unknown')}")
+
+            with col2:
+                if results['rooms']:
+                    st.subheader("Room Visualization")
+                    fig = create_room_visualization(results['rooms'])
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No rooms detected in this file")
+
+            # Export data
+            st.subheader("Export Options")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                # JSON Export
+                export_data = json.dumps(results, indent=2, default=str)
+                st.download_button(
+                    label="📄 Download JSON Report",
+                    data=export_data,
+                    file_name=
+                    f"{Path(st.session_state.current_filename).stem}_analysis.json",
+                    mime="application/json")
+
+            with col2:
+                # CSV Export for rooms
+                if results['rooms']:
+                    csv_buffer = io.StringIO()
+                    csv_buffer.write("Room,Area,Layer,Type,Source,Perimeter\n")
+
+                    for i, room in enumerate(results['rooms']):
+                        csv_buffer.write(
+                            f"Room {i+1},{room['area']:.2f},{room['layer']},{room.get('type', 'Unknown')},{room.get('source', 'parsed')},{room.get('perimeter', 0):.2f}\n"
+                        )
+
+                    csv_data = csv_buffer.getvalue()
+
+                    st.download_button(
+                        label="📊 Download CSV Report",
+                        data=csv_data,
+                        file_name=
+                        f"{Path(st.session_state.current_filename).stem}_rooms.csv",
+                        mime="text/csv")
+
+            with col3:
+                # Summary Text Export
+                summary_text = f"""DWG Analysis Report
+==================
+File: {st.session_state.current_filename}
+Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+File Information:
+- Layers: {len(results['layers'])}
+- Total Rooms: {len(results['rooms'])}
+
+Room Details:
+"""
+
+                for i, room in enumerate(results['rooms']):
+                    summary_text += f"""
+Room {i+1}:
+  - Area: {room['area']:.2f} sq units
+  - Layer: {room['layer']}
+  - Type: {room.get('type', 'Unknown')}
+  - Perimeter: {room.get('perimeter', 0):.2f} units
+  - Points: {len(room['points'])} vertices
+"""
+
+                summary_text += f"""
+Analysis Generated By: AI Architectural Space Analyzer
+Total Floor Area: {sum(room['area'] for room in results['rooms']):.2f} sq units
+"""
+
+                st.download_button(
+                    label="📝 Download Summary",
+                    data=summary_text,
+                    file_name=
+                    f"{Path(st.session_state.current_filename).stem}_summary.txt",
+                    mime="text/plain")
+
+    st.divider()
+    st.subheader(
+        "Or specify file path directly (for local development/testing)")
+    file_path_input = st.text_input("Enter full path to DWG/DXF file:",
+                                    key="direct_path_input")
+
+    if file_path_input and st.button("Parse from Path (Local)",
+                                     key="parse_from_path_button"):
+        if os.path.exists(file_path_input):
+            try:
+                results = parse_dwg_file_direct(file_path_input)
+                st.session_state.direct_parse_results = results
+                st.session_state.current_filename = Path(file_path_input).name
+                st.rerun()  # Rerun to display results
+            except Exception as e:
+                st.error(f"Error parsing file from path: {str(e)}")
+        else:
+            st.error("File not found at the specified path.")
+
+
+# --- End of Merged direct_dwg_parser.py functions ---
 
 if __name__ == "__main__":
     main()

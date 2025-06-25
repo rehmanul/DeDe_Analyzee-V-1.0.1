@@ -33,49 +33,21 @@ task = "shell.exec"
 args = "uv add ezdxf shapely matplotlib plotly pandas numpy reportlab rectpack opencv-python scikit-learn scipy"
 
 [[workflows.workflow]]
-name = "Streamlit App"
-author = 42824376
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0"
-
-[[workflows.workflow]]
-name = "Streamlit Server Fixed"
-author = 42824376
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false --server.fileWatcherType none --server.maxUploadSize 200"
-
-[[workflows.workflow]]
 name = "Direct DWG Parser"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "streamlit run direct_dwg_parser.py --server.port 5000 --server.address 0.0.0.0"
-waitForPort = 5000
+args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0"
 
-[[workflows.workflow]]
-name = "Start DWG Analyzer Pro"
-author = 44145820
-mode = "sequential"
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false --server.fileWatcherType none --server.maxUploadSize 200"
+[[ports]]
+localPort = 3001
+externalPort = 3001
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
-
-[[ports]]
-localPort = 5002
-externalPort = 3001
